@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Excel iOS Style</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      margin: 0;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      background: #f2f2f7;
+      color: #111827;
+    }
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 12px 16px 20px;
+    }
+    .nav {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .nav-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .nav-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+      max-width: 80%;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+      padding: 12px 12px 14px;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: nowrap;
+    }
+    .btn-primary {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 16px;
+      background: #007aff;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary:active {
+      opacity: 0.8;
+      transform: translateY(1px);
+    }
+    .status {
+      font-size: 11px;
+      color: #6b7280;
+      text-align: right;
+      flex: 1;
+    }
+    .formula-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: #f3f4f6;
+    }
+    .formula-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+    .formula-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      padding: 4px 0;
+      outline: none;
+    }
+    .sheet-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 260px;
+      user-select: none;
+    }
+    th, td {
+      border: 0.5px solid #e5e7eb;
+      min-width: 70px;
+      height: 34px;
+      padding: 4px 6px;
+      font-size: 14px;
+      text-align: right;
+    }
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+      text-align: center;
+      color: #6b7280;
+    }
+    td[contenteditable="true"] {
+      background: #ffffff;
+      outline: none;
+    }
+    td.active {
+      outline: 2px solid #007aff;
+      outline-offset: -2px;
+    }
+    .hint {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #9ca3af;
+      line-height: 1.4;
+    }
+    .hint code {
+      font-size: 11px;
+      background: #f3f4f6;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    @media (max-width: 400px) {
+      .nav-title {
+        font-size: 20px;
+      }
+      th, td {
+        min-width: 60px;
+        font-size: 13px;
+        height: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="nav">
+      <div>
+        <div class="nav-title">Mini Excel</div>
+        <div class="nav-subtitle">
+          Таблица с формулами: СУММ, РАЗНДАТ, СЕГОДНЯ и разность дат.
+        </div>
+      </div>
+    </header>
+
+    <main class="card">
+      <div class="toolbar">
+        <button class="btn-primary" id="recalcBtn">Пересчитать</button>
+        <div class="status" id="status">Готово</div>
+      </div>
+
+      <div class="formula-bar">
+        <span class="formula-label">fx</span>
+        <input
+          id="formulaInput"
+          class="formula-input"
+          type="text"
+          placeholder="Строка формул"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <div class="sheet-wrapper">
+        <table id="sheet">
+          <thead>
+            <tr>
+              <th></th>
+              <th>A</th>
+              <th>B</th>
+              <th>C</th>
+              <th>D</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>1</th>
+              <td contenteditable="true" data-cell="A1"></td>
+              <td contenteditable="true" data-cell="B1"></td>
+              <td contenteditable="true" data-cell="C1"></td>
+              <td contenteditable="true" data-cell="D1"></td>
+            </tr>
+            <tr>
+              <th>2</th>
+              <td contenteditable="true" data-cell="A2"></td>
+              <td contenteditable="true" data-cell="B2"></td>
+              <td contenteditable="true" data-cell="C2"></td>
+              <td contenteditable="true" data-cell="D2"></td>
+            </tr>
+            <tr>
+              <th>3</th>
+              <td contenteditable="true" data-cell="A3"></td>
+              <td contenteditable="true" data-cell="B3"></td>
+              <td contenteditable="true" data-cell="C3"></td>
+              <td contenteditable="true" data-cell="D3"></td>
+            </tr>
+            <tr>
+              <th>4</th>
+              <td contenteditable="true" data-cell="A4"></td>
+              <td contenteditable="true" data-cell="B4"></td>
+              <td contenteditable="true" data-cell="C4"></td>
+              <td contenteditable="true" data-cell="D4"></td>
+            </tr>
+            <tr>
+              <th>5</th>
+              <td contenteditable="true" data-cell="A5"></td>
+              <td contenteditable="true" data-cell="B5"></td>
+              <td contenteditable="true" data-cell="C5"></td>
+              <td contenteditable="true" data-cell="D5"></td>
+            </tr>
+            <tr>
+              <th>6</th>
+              <td contenteditable="true" data-cell="A6"></td>
+              <td contenteditable="true" data-cell="B6"></td>
+              <td contenteditable="true" data-cell="C6"></td>
+              <td contenteditable="true" data-cell="D6"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hint">
+        Примеры формул:<br />
+        • <code>=СУММ(A1,B1,C1)</code> или <code>=SUM(A1,B1,C1)</code><br />
+        • <code>=РАЗНДАТ(A1,A2,"D")</code> или <code>=DATEDIF(A1,A2,"D")</code><br />
+        • <code>=СЕГОДНЯ()</code> или <code>=TODAY()</code><br />
+        • <code>=A3-A2</code> — разность дат в днях<br />
+        Даты: <code>YYYY-MM-DD</code> или <code>DD.MM.YYYY</code>.
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Telegram WebApp init (не мешает обычному браузеру)
+    (function initTelegram() {
+      if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.ready();
+        try { Telegram.WebApp.expand(); } catch (e) {}
+      }
+    })();
+
+    const statusEl = document.getElementById('status');
+    const recalcBtn = document.getElementById('recalcBtn');
+    const formulaInput = document.getElementById('formulaInput');
+    const sheet = document.getElementById('sheet');
+    const cellElements = Array.from(sheet.querySelectorAll('td[data-cell]'));
+
+    // Сырые значения (то, что ввёл пользователь)
+    const rawValues = {};
+    // Вычисленные значения (результат)
+    const computedValues = {};
+    let activeCell = null;
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function isDateString(str) {
+      if (!str) return false;
+      const s = String(str).trim();
+      return (/^\d{4}-\d{2}-\d{2}$/.test(s) || /^\d{2}\.\d{2}\.\d{4}$/.test(s));
+    }
+
+    function parseDateString(str) {
+      if (!str) return null;
+      const s = String(str).trim();
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const [y, m, d] = s.split('-').map(Number);
+        return new Date(Date.UTC(y, m - 1, d));
+      }
+      // DD.MM.YYYY
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(s)) {
+        const [d, m, y] = s.split('.').map(Number);
+        return new Date(Date.UTC(y, m - 1, d));
+      }
+      return null;
+    }
+
+    function dateToDayNumber(str) {
+      const d = parseDateString(str);
+      if (!d) return NaN;
+      return Math.floor(d.getTime() / (1000 * 60 * 60 * 24));
+    }
+
+    // --- формульные функции ---
+
+    function SUM_FN(...args) {
+      let sum = 0;
+      const add = (v) => {
+        if (Array.isArray(v)) {
+          v.forEach(add);
+        } else {
+          const num = Number(String(v).replace(',', '.'));
+          if (!isNaN(num)) sum += num;
+        }
+      };
+      args.forEach(add);
+      return sum;
+    }
+
+    function toDateFromAny(v) {
+      if (typeof v === 'number' && isFinite(v)) {
+        // трактуем как "номер дня"
+        return new Date(v * 24 * 60 * 60 * 1000);
+      }
+      return parseDateString(v);
+    }
+
+    function DATEDIF_FN(start, end, unit) {
+      const u = String(unit || 'D').toUpperCase();
+      const d1 = toDateFromAny(start);
+      const d2 = toDateFromAny(end);
+      if (!d1 || !d2) return NaN;
+      const diffMs = d2.getTime() - d1.getTime();
+      if (u === 'D') {
+        return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      }
+      return NaN;
+    }
+
+    function TODAY_FN() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    // --- работа с ячейками и строкой формул ---
+
+    cellElements.forEach(td => {
+      td.addEventListener('focus', () => {
+        setActiveCell(td);
+      });
+      td.addEventListener('click', () => {
+        setActiveCell(td);
+      });
+      td.addEventListener('blur', () => {
+        saveRawFromDom(td);
+        recalcAll();
+      });
+      td.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          td.blur();
+        }
+      });
+      td.addEventListener('input', () => {
+        // обновляем сырое значение и строку формул при вводе
+        saveRawFromDom(td);
+        if (activeCell === td) {
+          const name = td.dataset.cell;
+          formulaInput.value = rawValues[name] ?? '';
+        }
+      });
+    });
+
+    function setActiveCell(td) {
+      if (activeCell && activeCell !== td) {
+        activeCell.classList.remove('active');
+      }
+      activeCell = td;
+      td.classList.add('active');
+      const name = td.dataset.cell;
+      const raw = rawValues[name];
+      formulaInput.value = raw != null ? raw : td.textContent.trim();
+    }
+
+    function saveRawFromDom(td) {
+      const name = td.dataset.cell;
+      rawValues[name] = td.innerText.trim();
+    }
+
+    function applyFormulaInput() {
+      if (!activeCell) return;
+      const name = activeCell.dataset.cell;
+      const value = formulaInput.value.trim();
+      rawValues[name] = value;
+      activeCell.textContent = value;
+      recalcAll();
+      activeCell.focus();
+    }
+
+    formulaInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyFormulaInput();
+        formulaInput.blur();
+      }
+    });
+
+    // --- пересчёт таблицы ---
+
+    function recalcAll() {
+      setStatus('Пересчёт...');
+
+      // всегда считываем актуальный текст из DOM как raw
+      cellElements.forEach(td => saveRawFromDom(td));
+
+      Object.keys(computedValues).forEach(k => delete computedValues[k]);
+
+      cellElements.forEach(td => {
+        const name = td.dataset.cell;
+        const raw = (rawValues[name] || '').trim();
+
+        if (raw.startsWith('=')) {
+          const expr = raw.slice(1);
+          const result = evaluateFormula(expr);
+          if (result.error) {
+            td.textContent = 'ERR';
+            computedValues[name] = null;
+          } else {
+            td.textContent = result.value;
+            computedValues[name] = result.value;
+          }
+        } else {
+          if (isDateString(raw)) {
+            computedValues[name] = raw;
+            td.textContent = raw;
+          } else {
+            const num = Number(raw.replace(',', '.'));
+            if (!isNaN(num) && raw !== '') {
+              computedValues[name] = num;
+              td.textContent = num;
+            } else {
+              computedValues[name] = raw || null;
+              td.textContent = raw;
+            }
+          }
+        }
+      });
+
+      setStatus('Готово');
+    }
+
+    function evaluateFormula(exprRaw) {
+      try {
+        let expr = String(exprRaw).trim();
+        // ; → , как в русской раскладке
+        expr = expr.replace(/;/g, ',');
+
+        // русские/английские названия функций
+        expr = expr.replace(/(СУММ|SUM)\s*\(/gi, 'SUM_FN(');
+        expr = expr.replace(/(СЕГОДНЯ|TODAY)\s*\(/gi, 'TODAY_FN(');
+        expr = expr.replace(/(РАЗНДАТ|DATEDIF)\s*\(/gi, 'DATEDIF_FN(');
+
+        // подстановка ссылок на ячейки
+        expr = expr.replace(/\b([A-Z][0-9]+)\b/g, (match, cellName) => {
+          const raw = (rawValues[cellName] || '').trim();
+          const computed = computedValues[cellName];
+
+          // если в ячейке формула — используем посчитанное значение
+          if (raw.startsWith('=')) {
+            if (computed == null) return '0';
+            if (typeof computed === 'number') return String(computed);
+            if (typeof computed === 'string' && isDateString(computed)) {
+              const dn = dateToDayNumber(computed);
+              return isNaN(dn) ? '0' : String(dn);
+            }
+            return `"${String(computed).replace(/"/g, '\\"')}"`;
+          }
+
+          // дата → номер дня
+          if (isDateString(raw)) {
+            const dn = dateToDayNumber(raw);
+            return isNaN(dn) ? '0' : String(dn);
+          }
+
+          // число
+          const num = Number(raw.replace(',', '.'));
+          if (!isNaN(num) && raw !== '') return String(num);
+
+          if (!raw) return '0';
+          return `"${raw.replace(/"/g, '\\"')}"`;
+        });
+
+        // демо: eval через Function (в бою нужен парсер)
+        const value = Function(
+          'SUM_FN', 'DATEDIF_FN', 'TODAY_FN',
+          '"use strict"; return (' + expr + ');'
+        )(SUM_FN, DATEDIF_FN, TODAY_FN);
+
+        if (value === undefined || value === null) return { value: '' };
+        if (typeof value === 'number' && !isFinite(value)) return { error: true };
+        return { value };
+      } catch (e) {
+        return { error: true };
+      }
+    }
+
+    recalcBtn.addEventListener('click', recalcAll);
+
+    // старт: всё пустое
+    recalcAll();
+  </script>
+</body>
+</html>
